@@ -3,23 +3,28 @@ package server
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/arimatakao/deepenc/cmd/config"
+	"github.com/arimatakao/deepenc/server/database"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/gommon/log"
+	"github.com/redis/go-redis/v9"
 )
 
 type Server struct {
-	e *echo.Echo
+	e  *echo.Echo
+	db database.Storager
+	r  *redis.Client
 }
 
-func (s *Server) Init() {
+func (s *Server) Init() error {
 	s.e = echo.New()
 	s.e.HideBanner = true
 
 	s.e.Pre(middleware.RemoveTrailingSlash())
 	s.e.Use(middleware.Logger())
+	s.e.Logger.SetLevel(log.INFO)
 
 	s.e.RouteNotFound("/*", func(c echo.Context) error {
 		return c.NoContent(http.StatusNotFound)
@@ -29,7 +34,7 @@ func (s *Server) Init() {
 
 	// Public routes
 	basePath.POST("/signup", s.SignUp)                 // Registration
-	basePath.GET("/verify", s.VerifySignUp)            // Verification
+	basePath.GET("/verify/:token", s.VerifySignUp)     // Verification
 	basePath.POST("/signin", s.SignIn)                 // Login
 	basePath.GET("/messages/public/:id", EmptyHandler) // Get public message by id
 	basePath.POST("/messages/:id", EmptyHandler)       // Get private message by id
@@ -41,14 +46,43 @@ func (s *Server) Init() {
 	messagePath.POST("", EmptyHandler)       // Create message
 	messagePath.PUT("/:id", EmptyHandler)    // Update message
 	messagePath.DELETE("/:id", EmptyHandler) // Delete message by hand if ttl not set
+
+	// Connect to DB
+	db, err := database.NewMainDB(config.MongoURL)
+	if err != nil {
+		return err
+	}
+	s.db = db
+
+	// Connect to Redis
+	opt, err := redis.ParseURL("redis://default:pass@localhost:6379/0")
+	if err != nil {
+		panic(err)
+	}
+
+	s.r = redis.NewClient(opt)
+
+	err = s.r.Ping(context.Background()).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) Run() error {
 	return s.e.Start(":" + config.Port)
 }
 
-func (s *Server) Shutdown() error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-	return s.e.Shutdown(ctx)
+func (s *Server) Shutdown(ctx context.Context) error {
+	if err := s.e.Shutdown(ctx); err != nil {
+		return err
+	}
+	if err := s.db.Shutdown(ctx); err != nil {
+		return err
+	}
+	if err := s.r.Close(); err != nil {
+		return err
+	}
+	return nil
 }

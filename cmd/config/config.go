@@ -8,10 +8,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var Port string
+var (
+	Port     string
+	MongoURL string
+	RedisURL string
+)
 
 type cfg struct {
-	Port int `yaml:"port"`
+	Port       int    `yaml:"port"`
+	MongoDBURL string `yaml:"mongodb_url"`
+	RedisURL   string `yaml:"redis_url"`
 }
 
 func LoadConfig(pathToYaml string) error {
@@ -30,6 +36,8 @@ func LoadConfig(pathToYaml string) error {
 	}
 
 	Port = strconv.Itoa(c.Port)
+	MongoURL = c.MongoDBURL
+	RedisURL = c.RedisURL
 
 	return nil
 }
