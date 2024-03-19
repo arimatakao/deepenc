@@ -59,7 +59,7 @@ func (d MainDB) GetUser(username string) (UserOut, error) {
 	u := UserOut{}
 
 	ctx := context.Background()
-	err := d.usersCol.FindOne(ctx, bson.D{{"username", username}}).Decode(&u)
+	err := d.usersCol.FindOne(ctx, bson.D{{Key: "username", Value: username}}).Decode(&u)
 	if err != nil {
 		return UserOut{}, err
 	}
@@ -87,7 +87,7 @@ func (d MainDB) GetMessage(id string) (MessageOut, error) {
 	}
 
 	ctx := context.Background()
-	result := d.usersCol.FindOne(ctx, bson.D{{"_id", msgId}})
+	result := d.usersCol.FindOne(ctx, bson.D{{Key: "_id", Value: msgId}})
 	if result.Err() != nil {
 		return MessageOut{}, result.Err()
 	}

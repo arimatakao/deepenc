@@ -9,13 +9,12 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
-	"github.com/redis/go-redis/v9"
 )
 
 type Server struct {
-	e  *echo.Echo
-	db database.Storager
-	r  *redis.Client
+	e       *echo.Echo
+	db      database.Storager
+	cachedb database.Cacher
 }
 
 func (s *Server) Init() error {
@@ -54,18 +53,12 @@ func (s *Server) Init() error {
 	}
 	s.db = db
 
-	// Connect to Redis
-	opt, err := redis.ParseURL("redis://default:pass@localhost:6379/0")
-	if err != nil {
-		panic(err)
-	}
-
-	s.r = redis.NewClient(opt)
-
-	err = s.r.Ping(context.Background()).Err()
+	// Connect to CacheDB
+	cachedb, err := database.NewCacheDB(config.RedisURL)
 	if err != nil {
 		return err
 	}
+	s.cachedb = cachedb
 
 	return nil
 }
@@ -81,7 +74,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	if err := s.db.Shutdown(ctx); err != nil {
 		return err
 	}
-	if err := s.r.Close(); err != nil {
+	if err := s.cachedb.Shutdown(ctx); err != nil {
 		return err
 	}
 	return nil

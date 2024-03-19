@@ -6,6 +6,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type cachedUser struct {
+	Username       string `redis:"username"`
+	HashedPassword string `redis:"password"`
+}
+
 type User struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -20,6 +25,12 @@ type UserOut struct {
 type UsersDB interface {
 	AddUser(u *User) error
 	GetUser(username string) (UserOut, error)
+}
+
+type Cacher interface {
+	AddUser(username string, hashedPassword string) (token string, err error)
+	GetUser(token string) (*User, error)
+	Shutdown(context.Context) error
 }
 
 type Message struct {
