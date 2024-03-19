@@ -40,7 +40,7 @@ func (s *Server) SignUp(c echo.Context) error {
 	if err != mongo.ErrNoDocuments {
 		return c.JSON(http.StatusConflict, resp("user is already exist"))
 	} else if err != nil && err != mongo.ErrNoDocuments {
-		s.e.Logger.Error(err)
+		c.Logger().Error(err)
 		return c.String(http.StatusInternalServerError, "")
 	}
 
@@ -51,13 +51,13 @@ func (s *Server) SignUp(c echo.Context) error {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		s.e.Logger.Error(err)
+		c.Logger().Error(err)
 		return c.String(http.StatusInternalServerError, "")
 	}
 
 	token, err := s.cachedb.AddUser(u.Username, string(hashedPassword))
 	if err != nil {
-		s.e.Logger.Error(err)
+		c.Logger().Error(err)
 		return c.String(http.StatusInternalServerError, "")
 	}
 
@@ -73,12 +73,12 @@ func (s *Server) VerifySignUp(c echo.Context) error {
 
 	u, err := s.cachedb.GetUser(confirmToken)
 	if err != nil {
-		s.e.Logger.Error(err)
+		c.Logger().Error(err)
 		return c.String(http.StatusInternalServerError, "")
 	}
 
 	if err = s.db.AddUser(u); err != nil {
-		s.e.Logger.Error(err)
+		c.Logger().Error(err)
 		c.String(http.StatusInternalServerError, "")
 	}
 
@@ -100,7 +100,7 @@ func (s *Server) SignIn(c echo.Context) error {
 	if err == mongo.ErrNoDocuments {
 		return c.JSON(http.StatusNotFound, "")
 	} else if err != nil {
-		s.e.Logger.Error(err)
+		c.Logger().Error(err)
 		c.String(http.StatusInternalServerError, "")
 	}
 
@@ -111,7 +111,7 @@ func (s *Server) SignIn(c echo.Context) error {
 
 	token, err := newJWT(userDocument.Id.Hex(), config.JWTSecret)
 	if err != nil {
-		s.e.Logger.Error(err)
+		c.Logger().Error(err)
 		return c.String(http.StatusInternalServerError, "")
 	}
 
