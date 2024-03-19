@@ -9,15 +9,17 @@ import (
 )
 
 var (
-	Port     string
-	MongoURL string
-	RedisURL string
+	Port      string
+	MongoURL  string
+	RedisURL  string
+	JWTSecret string
 )
 
 type cfg struct {
 	Port       int    `yaml:"port"`
 	MongoDBURL string `yaml:"mongodb_url"`
 	RedisURL   string `yaml:"redis_url"`
+	JWTSecret  string `yaml:"jwt_secret"`
 }
 
 func LoadConfig(pathToYaml string) error {
@@ -35,9 +37,14 @@ func LoadConfig(pathToYaml string) error {
 		return errors.New("not allowed port value in config")
 	}
 
+	if c.JWTSecret == "" {
+		return errors.New("jwt_secret field from config is empty")
+	}
+
 	Port = strconv.Itoa(c.Port)
 	MongoURL = c.MongoDBURL
 	RedisURL = c.RedisURL
+	JWTSecret = c.JWTSecret
 
 	return nil
 }

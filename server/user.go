@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/arimatakao/deepenc/cmd/config"
 	"github.com/arimatakao/deepenc/server/database"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -108,5 +109,13 @@ func (s *Server) SignIn(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "")
 	}
 
-	return c.String(http.StatusOK, "")
+	token, err := newJWT(userDocument.Id.Hex(), config.JWTSecret)
+	if err != nil {
+		s.e.Logger.Error(err)
+		return c.String(http.StatusInternalServerError, "")
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"token": token,
+	})
 }
