@@ -4,11 +4,23 @@ import (
 	"errors"
 
 	"github.com/golang-jwt/jwt/v5"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 )
 
 type jwtCustomClaims struct {
 	jwt.RegisteredClaims
+}
+
+func newJWTConfig(secret string) echojwt.Config {
+	cfg := echojwt.Config{
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
+			return new(jwtCustomClaims)
+		},
+		SigningKey: []byte(secret),
+	}
+
+	return cfg
 }
 
 func newJWT(userId, secret string) (string, error) {

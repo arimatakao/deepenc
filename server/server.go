@@ -6,6 +6,7 @@ import (
 
 	"github.com/arimatakao/deepenc/cmd/config"
 	"github.com/arimatakao/deepenc/server/database"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
@@ -32,17 +33,19 @@ func (s *Server) Init() error {
 	basePath := s.e.Group("/api")
 
 	// Public routes
-	basePath.POST("/signup", s.SignUp)                 // Registration
-	basePath.GET("/verify/:token", s.VerifySignUp)     // Verification
-	basePath.POST("/signin", s.SignIn)                 // Login
-	basePath.GET("/messages/public/:id", EmptyHandler) // Get public message by id
-	basePath.POST("/messages/:id", EmptyHandler)       // Get private message by id
+	basePath.POST("/signup", s.SignUp)                       // Registration
+	basePath.GET("/verify/:token", s.VerifySignUp)           // Verification
+	basePath.POST("/signin", s.SignIn)                       // Login
+	basePath.GET("/messages/public/:id", s.GetPublicMessage) // Get public message by id
+	basePath.POST("/messages/:id", EmptyHandler)             // Get private message by id
 
 	// JWT Auth routes
 	messagePath := basePath.Group("/messages")
+	messagePath.Use(echojwt.WithConfig(newJWTConfig(config.JWTSecret)))
+
 	messagePath.GET("/public", EmptyHandler) // Get list of public messages with text
 	messagePath.GET("", EmptyHandler)        // Get list of user id messages
-	messagePath.POST("", EmptyHandler)       // Create message
+	messagePath.POST("", s.CreateMessage)    // Create message
 	messagePath.PUT("/:id", EmptyHandler)    // Update message
 	messagePath.DELETE("/:id", EmptyHandler) // Delete message by hand if ttl not set
 

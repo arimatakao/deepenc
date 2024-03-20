@@ -75,7 +75,7 @@ func (d MainDB) AddMessage(m *Message) (string, error) {
 	}
 	id, ok := result.InsertedID.(primitive.ObjectID)
 	if !ok {
-		return "", errors.New("cant convert inserted object id")
+		return "", errors.New("can't convert inserted id primitive")
 	}
 
 	return id.Hex(), nil
@@ -87,18 +87,18 @@ func (d MainDB) GetMessage(id string) (MessageOut, error) {
 	}
 
 	ctx := context.Background()
-	result := d.usersCol.FindOne(ctx, bson.D{{Key: "_id", Value: msgId}})
+	result := d.messagesCol.FindOne(ctx, bson.D{{Key: "_id", Value: msgId}})
 	if result.Err() != nil {
 		return MessageOut{}, result.Err()
 	}
 
-	msg := MessageOut{}
-	err = result.Decode(&msg)
+	msg := new(MessageOut)
+	err = result.Decode(msg)
 	if err != nil {
 		return MessageOut{}, err
 	}
 
-	return msg, nil
+	return *msg, nil
 }
 func (d MainDB) GetLastMessages(skip int) (MessagesOut, error) {
 	return MessagesOut{}, nil

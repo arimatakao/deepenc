@@ -34,26 +34,26 @@ type Cacher interface {
 }
 
 type Message struct {
-	OwnerId       string `json:"owner_id"`
-	Content       string `json:"content"`
-	IsPrivate     bool   `json:"is_private"`
-	EncodingType  string `json:"encoding_type"`
-	Password      string `json:"password"`
-	OnlyOwnerView bool   `json:"only_owner_view"`
-	IsAnon        bool   `json:"is_anon"`
-	IsOneTime     bool   `json:"is_one_time"`
+	OwnerId       string `json:"owner_id" bson:"owner_id"`
+	Content       string `json:"content" bson:"content"`
+	IsPrivate     bool   `json:"is_private" bson:"is_private"`
+	EncodingType  string `json:"encoding_type" bson:"encoding_type"`
+	Password      string `json:"password" bson:"password"`
+	OnlyOwnerView bool   `json:"only_owner_view" bson:"only_owner_view"`
+	IsAnon        bool   `json:"is_anon" bson:"is_anon"`
+	IsOneTime     bool   `json:"is_one_time" bson:"is_one_time"`
 }
 
 type MessageOut struct {
-	Id            primitive.ObjectID `bson:"_id"`
-	OwnerId       string             `json:"owner_id"`
-	Content       string             `json:"content"`
-	IsPrivate     bool               `json:"is_private"`
-	EncodingType  string             `json:"encoding_type"`
-	Password      string             `json:"password"`
-	OnlyOwnerView bool               `json:"only_owner_view"`
-	IsAnon        bool               `json:"is_anon"`
-	IsOneTime     bool               `json:"is_one_time"`
+	Id            primitive.ObjectID `json:"id" bson:"_id"`
+	OwnerId       string             `json:"owner_id,omitempty" bson:"owner_id"`
+	Content       string             `json:"content" bson:"content"`
+	IsPrivate     bool               `json:"is_private" bson:"is_private"`
+	EncodingType  string             `json:"encoding_type" bson:"encoding_type"`
+	Password      string             `json:"password,omitempty" bson:"password"`
+	OnlyOwnerView bool               `json:"only_owner_view" bson:"only_owner_view"`
+	IsAnon        bool               `json:"is_anon" bson:"is_anon"`
+	IsOneTime     bool               `json:"is_one_time" bson:"is_one_time"`
 }
 
 type MessagesOut []MessageOut
