@@ -43,11 +43,11 @@ func (s *Server) Init() error {
 	messagePath := basePath.Group("/messages")
 	messagePath.Use(echojwt.WithConfig(newJWTConfig(config.JWTSecret)))
 
-	messagePath.GET("/public", EmptyHandler) // Get list of public messages with text
-	messagePath.GET("", EmptyHandler)        // Get list of user id messages
-	messagePath.POST("", s.CreateMessage)    // Create message
-	messagePath.PUT("/:id", EmptyHandler)    // Update message
-	messagePath.DELETE("/:id", EmptyHandler) // Delete message by hand if ttl not set
+	messagePath.GET("/public", EmptyHandler)   // Get list of public messages with text
+	messagePath.GET("", s.GetUserMessagesList) // Get list of user id messages
+	messagePath.POST("", s.CreateMessage)      // Create message
+	messagePath.PUT("/:id", EmptyHandler)      // Update message
+	messagePath.DELETE("/:id", EmptyHandler)   // Delete message by hand if ttl not set
 
 	// Connect to DB
 	db, err := database.NewMainDB(config.MongoURL)

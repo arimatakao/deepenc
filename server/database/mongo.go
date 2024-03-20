@@ -104,7 +104,22 @@ func (d MainDB) GetLastMessages(skip int) (MessagesOut, error) {
 	return MessagesOut{}, nil
 }
 func (d MainDB) GetUserMessages(ownerId string) (MessagesOut, error) {
-	return MessagesOut{}, nil
+	ctx := context.Background()
+	cursor, err := d.messagesCol.Find(ctx, bson.D{{Key: "owner_id", Value: ownerId}})
+	if err != nil {
+		return MessagesOut{}, err
+	}
+
+	messages := make(MessagesOut, 0)
+	for cursor.Next(ctx) {
+		var m MessageOut
+		if err = cursor.Decode(&m); err != nil {
+			return MessagesOut{}, err
+		}
+		messages = append(messages, m)
+	}
+
+	return messages, nil
 }
 func (d MainDB) UpdateMessage(id string, m Message) error {
 	return nil

@@ -34,8 +34,7 @@ func (m Message) toDatabaseFormat(userId string) *database.Message {
 func (s *Server) CreateMessage(c echo.Context) error {
 	userId, err := getUserIdFromJWT(c)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.String(http.StatusInternalServerError, "")
+		return c.String(http.StatusBadRequest, "")
 	}
 
 	msg := new(Message)
@@ -84,4 +83,21 @@ func (s *Server) GetPublicMessage(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, msg)
+}
+
+func (s *Server) GetUserMessagesList(c echo.Context) error {
+	userId, err := getUserIdFromJWT(c)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	messages, err := s.db.GetUserMessages(userId)
+	if err == mongo.ErrNoDocuments {
+		return c.JSON(http.StatusOK, "")
+	}
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "")
+	}
+
+	return c.JSON(http.StatusOK, messages)
 }
