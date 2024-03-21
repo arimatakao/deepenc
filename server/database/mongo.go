@@ -100,8 +100,26 @@ func (d MainDB) GetMessage(id string) (MessageOut, error) {
 
 	return *msg, nil
 }
-func (d MainDB) GetLastMessages(skip int) (MessagesOut, error) {
-	return MessagesOut{}, nil
+func (d MainDB) GetLastPublicMessages(skip int) (MessagesOut, error) {
+	ctx := context.Background()
+
+	opts := options.Find().SetSort(map[string]int{"_id": -1}).SetLimit(10)
+	cursor, err := d.messagesCol.Find(ctx,
+		bson.D{{Key: "encoding_type", Value: "plaintext"}}, opts)
+	if err != nil {
+		return MessagesOut{}, err
+	}
+
+	messages := make(MessagesOut, 0)
+	for cursor.Next(ctx) {
+		var m MessageOut
+		if err = cursor.Decode(&m); err != nil {
+			return MessagesOut{}, err
+		}
+		messages = append(messages, m)
+	}
+
+	return messages, nil
 }
 func (d MainDB) GetUserMessages(ownerId string) (MessagesOut, error) {
 	ctx := context.Background()

@@ -61,7 +61,7 @@ type MessagesOut []MessageOut
 type MessagesDB interface {
 	AddMessage(m *Message) (id string, err error)
 	GetMessage(id string) (MessageOut, error)
-	GetLastMessages(skip int) (MessagesOut, error)
+	GetLastPublicMessages(limit int) (MessagesOut, error)
 	GetUserMessages(ownerId string) (MessagesOut, error)
 	UpdateMessage(id string, m Message) error
 	DeleteMessage(id string) error

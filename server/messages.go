@@ -47,6 +47,7 @@ func (s *Server) CreateMessage(c echo.Context) error {
 	}
 
 	mFormat := msg.toDatabaseFormat(userId)
+	c.Logger().Info(mFormat)
 
 	resultId, err := s.db.AddMessage(mFormat)
 	if err != nil {
@@ -93,9 +94,24 @@ func (s *Server) GetUserMessagesList(c echo.Context) error {
 
 	messages, err := s.db.GetUserMessages(userId)
 	if err == mongo.ErrNoDocuments {
-		return c.JSON(http.StatusOK, "")
+		return c.String(http.StatusNotFound, "")
 	}
 	if err != nil {
+		c.Logger().Error(err)
+		return c.String(http.StatusInternalServerError, "")
+	}
+
+	return c.JSON(http.StatusOK, messages)
+}
+
+func (s *Server) GetPublicMessagesList(c echo.Context) error {
+
+	messages, err := s.db.GetLastPublicMessages(10)
+	if err == mongo.ErrNoDocuments {
+		return c.String(http.StatusNotFound, "")
+	}
+	if err != nil {
+		c.Logger().Error(err)
 		return c.String(http.StatusInternalServerError, "")
 	}
 
