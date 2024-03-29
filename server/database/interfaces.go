@@ -63,7 +63,7 @@ type MessagesDB interface {
 	GetMessage(id string) (MessageOut, error)
 	GetLastPublicMessages(limit int) (MessagesOut, error)
 	GetUserMessages(ownerId string) (MessagesOut, error)
-	UpdateMessage(id string, m Message) error
+	UpdateMessage(id string, m *Message) error
 	DeleteMessage(id string) error
 }
 

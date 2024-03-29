@@ -139,9 +139,32 @@ func (d MainDB) GetUserMessages(ownerId string) (MessagesOut, error) {
 
 	return messages, nil
 }
-func (d MainDB) UpdateMessage(id string, m Message) error {
-	return nil
+func (d MainDB) UpdateMessage(id string, m *Message) error {
+	msgId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	_, err = d.messagesCol.UpdateOne(ctx, bson.D{{Key: "_id", Value: msgId}},
+		bson.D{{Key: "$set", Value: m}})
+	return err
 }
 func (d MainDB) DeleteMessage(id string) error {
+	msgId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	res, err := d.messagesCol.DeleteOne(ctx, bson.D{{Key: "_id", Value: msgId}})
+	if err != nil {
+		return err
+	}
+
+	if res.DeletedCount == 0 {
+		return errors.New("message is not deleted")
+	}
+
 	return nil
 }

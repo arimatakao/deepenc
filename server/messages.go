@@ -47,7 +47,6 @@ func (s *Server) CreateMessage(c echo.Context) error {
 	}
 
 	mFormat := msg.toDatabaseFormat(userId)
-	c.Logger().Info(mFormat)
 
 	resultId, err := s.db.AddMessage(mFormat)
 	if err != nil {
@@ -105,7 +104,6 @@ func (s *Server) GetUserMessagesList(c echo.Context) error {
 }
 
 func (s *Server) GetPublicMessagesList(c echo.Context) error {
-
 	messages, err := s.db.GetLastPublicMessages(10)
 	if err == mongo.ErrNoDocuments {
 		return c.String(http.StatusNotFound, "")
@@ -116,4 +114,77 @@ func (s *Server) GetPublicMessagesList(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, messages)
+}
+
+func (s *Server) UpdateMessage(c echo.Context) error {
+	userId, err := getUserIdFromJWT(c)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	msgId := c.Param("id")
+	if msgId == "" {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	msg := new(Message)
+	if err := c.Bind(msg); err != nil {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	_, err = s.db.GetMessage(msgId)
+	if err == mongo.ErrNoDocuments {
+		return c.String(http.StatusNotFound, "")
+	}
+	if err != nil {
+		c.Logger().Error(err)
+		return c.String(http.StatusInternalServerError, "")
+	}
+
+	if msg.Content == "" {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	mFormat := msg.toDatabaseFormat(userId)
+
+	err = s.db.UpdateMessage(msgId, mFormat)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	return c.String(http.StatusNoContent, "")
+}
+
+func (s *Server) DeleteMessage(c echo.Context) error {
+	userId, err := getUserIdFromJWT(c)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	msgId := c.Param("id")
+	if msgId == "" {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	msg, err := s.db.GetMessage(msgId)
+	if err == mongo.ErrNoDocuments {
+		return c.String(http.StatusNotFound, "")
+	}
+	if err != nil {
+		c.Logger().Error(err)
+		return c.String(http.StatusInternalServerError, "")
+	}
+
+	if msg.OwnerId != userId {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	err = s.db.DeleteMessage(msgId)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.String(http.StatusInternalServerError, "")
+	}
+
+	return c.String(http.StatusNoContent, "")
 }

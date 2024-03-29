@@ -46,8 +46,8 @@ func (s *Server) Init() error {
 	messagePath.GET("/public", s.GetPublicMessagesList) // Get list of public messages with text
 	messagePath.GET("", s.GetUserMessagesList)          // Get list of user id messages
 	messagePath.POST("", s.CreateMessage)               // Create message
-	messagePath.PUT("/:id", EmptyHandler)               // Update message
-	messagePath.DELETE("/:id", EmptyHandler)            // Delete message by hand if ttl not set
+	messagePath.PUT("/:id", s.UpdateMessage)            // Update message
+	messagePath.DELETE("/:id", s.DeleteMessage)         // Delete message by hand if ttl not set
 
 	// Connect to DB
 	db, err := database.NewMainDB(config.MongoURL)
