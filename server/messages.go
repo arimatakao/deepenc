@@ -8,6 +8,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const (
+	MIN_CONTENT_SIZE  = 16
+	MIN_PASSWORD_SIZE = 8
+)
+
 type Message struct {
 	Content       string `json:"content"`
 	IsPrivate     bool   `json:"is_private"`
@@ -29,6 +34,34 @@ func (m Message) toDatabaseFormat(userId string) *database.Message {
 		IsAnon:        m.IsAnon,
 		IsOneTime:     m.IsOneTime,
 	}
+}
+
+func (m Message) isValid() bool {
+	switch m.EncodingType {
+	case "plaintext":
+		if m.Password != "" {
+			return false
+		}
+	case "password":
+		if len(m.Password) < MIN_PASSWORD_SIZE {
+			return false
+		}
+	case "internal":
+		if len(m.Content) < MIN_CONTENT_SIZE {
+			return false
+		}
+	case "aes":
+		if len(m.Content) < MIN_CONTENT_SIZE {
+			return false
+		}
+		if len(m.Password) < MIN_PASSWORD_SIZE {
+			return false
+		}
+	default:
+		return false
+	}
+
+	return true
 }
 
 func toOutputFormat(dbmsg database.MessageOut) *Message {
@@ -58,7 +91,7 @@ func (s *Server) CreateMessage(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "")
 	}
 
-	if msg.Content == "" {
+	if !msg.isValid() {
 		return c.String(http.StatusBadRequest, "")
 	}
 
@@ -128,6 +161,11 @@ func (s *Server) GetPublicMessagesList(c echo.Context) error {
 		c.Logger().Error(err)
 		return c.String(http.StatusInternalServerError, "")
 	}
+	for _, v := range messages {
+		if v.IsAnon {
+			v.OwnerId = ""
+		}
+	}
 
 	return c.JSON(http.StatusOK, messages)
 }
@@ -145,6 +183,10 @@ func (s *Server) UpdateMessage(c echo.Context) error {
 
 	msg := new(Message)
 	if err := c.Bind(msg); err != nil {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	if !msg.isValid() {
 		return c.String(http.StatusBadRequest, "")
 	}
 

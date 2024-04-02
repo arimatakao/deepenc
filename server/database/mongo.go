@@ -105,7 +105,15 @@ func (d MainDB) GetLastPublicMessages(skip int) (MessagesOut, error) {
 
 	opts := options.Find().SetSort(map[string]int{"_id": -1}).SetLimit(10)
 	cursor, err := d.messagesCol.Find(ctx,
-		bson.D{{Key: "encoding_type", Value: "plaintext"}}, opts)
+		bson.D{
+			{
+				Key:   "encoding_type",
+				Value: "plaintext",
+			},
+			{
+				Key:   "is_private",
+				Value: false,
+			}}, opts)
 	if err != nil {
 		return MessagesOut{}, err
 	}
