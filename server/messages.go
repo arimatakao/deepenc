@@ -11,6 +11,8 @@ import (
 const (
 	MIN_CONTENT_SIZE  = 16
 	MIN_PASSWORD_SIZE = 8
+
+	MAX_CONTENT_SIZE = 2000
 )
 
 type Message struct {
@@ -37,6 +39,10 @@ func (m Message) toDatabaseFormat(userId string) *database.Message {
 }
 
 func (m Message) isValid() bool {
+	if len(m.Content) > MAX_CONTENT_SIZE {
+		return false
+	}
+
 	switch m.EncodingType {
 	case "plaintext":
 		if m.Password != "" {
@@ -62,6 +68,14 @@ func (m Message) isValid() bool {
 	}
 
 	return true
+}
+
+func (m *Message) encrypt() error {
+	return nil
+}
+
+func (m *Message) decrypt() error {
+	return nil
 }
 
 func toOutputFormat(dbmsg database.MessageOut) *Message {
