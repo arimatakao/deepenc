@@ -37,7 +37,7 @@ func (s *Server) Init() error {
 	basePath.GET("/verify/:token", s.VerifySignUp)           // Verification
 	basePath.POST("/signin", s.SignIn)                       // Login
 	basePath.GET("/messages/public/:id", s.GetPublicMessage) // Get public message by id
-	basePath.POST("/messages/:id", EmptyHandler)             // Get private message by id
+	basePath.POST("/messages/:id", s.GetPrivateMessage)      // Get private message by id
 
 	// JWT Auth routes
 	messagePath := basePath.Group("/messages")

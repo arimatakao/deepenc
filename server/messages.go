@@ -31,6 +31,22 @@ func (m Message) toDatabaseFormat(userId string) *database.Message {
 	}
 }
 
+func toOutputFormat(dbmsg database.MessageOut) *Message {
+	return &Message{
+		Content:       dbmsg.Content,
+		IsPrivate:     dbmsg.IsPrivate,
+		EncodingType:  dbmsg.EncodingType,
+		Password:      dbmsg.Password,
+		OnlyOwnerView: dbmsg.OnlyOwnerView,
+		IsAnon:        dbmsg.IsAnon,
+		IsOneTime:     dbmsg.IsOneTime,
+	}
+}
+
+type InputPassword struct {
+	Password string `json:"password"`
+}
+
 func (s *Server) CreateMessage(c echo.Context) error {
 	userId, err := getUserIdFromJWT(c)
 	if err != nil {
@@ -187,4 +203,32 @@ func (s *Server) DeleteMessage(c echo.Context) error {
 	}
 
 	return c.String(http.StatusNoContent, "")
+}
+
+func (s *Server) GetPrivateMessage(c echo.Context) error {
+	msgId := c.Param("id")
+	if msgId == "" {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	msg, err := s.db.GetMessage(msgId)
+	if err == mongo.ErrNoDocuments {
+		return c.String(http.StatusNotFound, "")
+	}
+	if err != nil {
+		c.Logger().Error(err)
+		return c.String(http.StatusInternalServerError, "")
+	}
+
+	if !msg.IsPrivate {
+		return c.String(http.StatusNotFound, "")
+	}
+
+	if msg.IsAnon {
+		msg.OwnerId = ""
+	}
+
+	msgResp := toOutputFormat(msg)
+
+	return c.JSON(http.StatusOK, msgResp)
 }
