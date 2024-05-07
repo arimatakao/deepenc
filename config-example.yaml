@@ -2,3 +2,4 @@ port: 1234
 mongodb_url: "mongodb://root:example@mongo:27017"
 redis_url: "redis://default:pass@redis:6379/0"
 jwt_secret: "supersecretexample"
+aes_internal_key: "aesinternalkey"

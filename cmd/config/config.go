@@ -13,6 +13,7 @@ var (
 	MongoURL  string
 	RedisURL  string
 	JWTSecret string
+	AESInternalKey []byte
 )
 
 type cfg struct {
@@ -20,6 +21,7 @@ type cfg struct {
 	MongoDBURL string `yaml:"mongodb_url"`
 	RedisURL   string `yaml:"redis_url"`
 	JWTSecret  string `yaml:"jwt_secret"`
+	AESInternalKey string `yaml:"aes_internal_key"`
 }
 
 func LoadConfig(pathToYaml string) error {
@@ -34,17 +36,22 @@ func LoadConfig(pathToYaml string) error {
 	}
 
 	if c.Port <= 0 {
-		return errors.New("not allowed port value in config")
+		return errors.New("port value from config is not allowed")
 	}
 
 	if c.JWTSecret == "" {
 		return errors.New("jwt_secret field from config is empty")
 	}
 
+	if len(c.AESInternalKey) < 8 {
+		return errors.New("aes_internal_key field is shorter than 8 symbols in config")
+	}
+
 	Port = strconv.Itoa(c.Port)
 	MongoURL = c.MongoDBURL
 	RedisURL = c.RedisURL
 	JWTSecret = c.JWTSecret
+	AESInternalKey = []byte(c.AESInternalKey)
 
 	return nil
 }
