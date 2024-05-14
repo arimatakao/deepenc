@@ -36,7 +36,7 @@ func main() {
 
 	go func() {
 		if err := srv.Run(); err != nil && err != http.ErrServerClosed {
-			log.Fatal("Error while run server: ", err.Error())
+			log.Fatal("Error occurred while running server: ", err.Error())
 		} else {
 			log.Println("Shutdown server")
 		}
