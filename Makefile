@@ -3,5 +3,7 @@ run:
 build:
 	mkdir bin
 	go build -o ./bin/deepenc main.go
+test:
+	go test -v ./...
 clear:
 	rm -rf ./bin

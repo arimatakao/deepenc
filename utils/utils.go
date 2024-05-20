@@ -4,33 +4,33 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"io"
 )
 
 const (
-	NONCE_SIZE = 12
-	MAX_KEY_SIZE = 20
+	EMPTY_SYMBOLS = "                "
 )
 
 func EncryptAES256(key []byte, plaintext string) (string, error) {
-	// CHECK KEY SIZE AND SIZE OF PLAINTEXT
-	// if key size < 32 there is no aes 256 ecryption
-	// so we need generate "nonce" for fill all bytes of key
-
-	if len(key) > MAX_KEY_SIZE {
-		// cut key to 20 bytes
-		key = key[:MAX_KEY_SIZE]
+	if len(key) == 0 {
+		return "", errors.New("key is empty")
+	}
+	if len(plaintext) == 0 {
+		return "", errors.New("plaintext is empty")
 	}
 
+	keyHashed := sha256.Sum256(key)
+
 	if len(plaintext) < 16 {
-		return "", errors.New("plaintext size less then 16")
+		plaintext += EMPTY_SYMBOLS[len(plaintext):]
 	}
 
 	bplaintext := []byte(plaintext)
 
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(keyHashed[:])
 	if err != nil {
 		return "", err
 	}
@@ -40,7 +40,7 @@ func EncryptAES256(key []byte, plaintext string) (string, error) {
 		return "", nil
 	}
 
-	nonce := make([]byte, NONCE_SIZE)
+	nonce := make([]byte, aesgcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return "", err
 	}
@@ -53,12 +53,20 @@ func EncryptAES256(key []byte, plaintext string) (string, error) {
 }
 
 func DecryptAES256(key []byte, base64ciphertext string) (string, error) {
+	if len(key) == 0 {
+		return "", errors.New("key is empty")
+	}
+	if len(base64ciphertext) == 0 {
+		return "", errors.New("base64ciphertext is empty")
+	}
+	keyHashed := sha256.Sum256(key)
+
 	ciphertext, err := base64.StdEncoding.DecodeString(base64ciphertext)
 	if err != nil {
 		return "", err
 	}
 
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(keyHashed[:])
 	if err != nil {
 		return "", err
 	}
