@@ -1,11 +1,15 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/arimatakao/deepenc/cmd/config"
 	"github.com/arimatakao/deepenc/server/database"
+	"github.com/arimatakao/deepenc/utils"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -39,7 +43,8 @@ func (m Message) toDatabaseFormat(userId string) *database.Message {
 }
 
 func (m Message) isValid() bool {
-	if len(m.Content) > MAX_CONTENT_SIZE {
+	if len(m.Content) > MAX_CONTENT_SIZE ||
+		m.Content == "" {
 		return false
 	}
 
@@ -70,11 +75,37 @@ func (m Message) isValid() bool {
 	return true
 }
 
-func (m *Message) encrypt() error {
-	return nil
-}
-
-func (m *Message) decrypt() error {
+func (m *Message) formatToEncodingType() error {
+	switch m.EncodingType {
+	case "plaintext":
+		m.Password = ""
+	case "password":
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(m.Password),
+			bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		m.Password = string(hashedPassword)
+		m.IsPrivate = true
+	case "internal":
+		encrypted, err := utils.EncryptAES256(config.AESInternalKey, m.Content)
+		if err != nil {
+			return err
+		}
+		m.Content = encrypted
+		m.Password = ""
+		m.IsPrivate = true
+	case "aes":
+		encrypted, err := utils.EncryptAES256([]byte(m.Password), m.Content)
+		if err != nil {
+			return err
+		}
+		m.Content = encrypted
+		m.Password = ""
+		m.IsPrivate = true
+	default:
+		return errors.New("unknown encoding_type")
+	}
 	return nil
 }
 
@@ -109,6 +140,11 @@ func (s *Server) CreateMessage(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "")
 	}
 
+	if err := msg.formatToEncodingType(); err != nil {
+		c.Logger().Error(err)
+		return c.String(http.StatusInternalServerError, "")
+	}
+
 	mFormat := msg.toDatabaseFormat(userId)
 
 	resultId, err := s.db.AddMessage(mFormat)
@@ -137,7 +173,10 @@ func (s *Server) GetPublicMessage(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "")
 	}
 
-	if msg.IsPrivate || msg.Password != "" || msg.EncodingType != "plaintext" {
+	if msg.IsPrivate ||
+		msg.Password != "" ||
+		msg.EncodingType != "plaintext" ||
+		msg.OnlyOwnerView {
 		return c.String(http.StatusNotFound, "")
 	}
 
@@ -213,8 +252,9 @@ func (s *Server) UpdateMessage(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "")
 	}
 
-	if msg.Content == "" {
-		return c.String(http.StatusBadRequest, "")
+	if err = msg.formatToEncodingType(); err != nil {
+		c.Logger().Error(err)
+		return c.String(http.StatusInternalServerError, "")
 	}
 
 	mFormat := msg.toDatabaseFormat(userId)
@@ -267,6 +307,11 @@ func (s *Server) GetPrivateMessage(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "")
 	}
 
+	input := new(InputPassword)
+	if err := c.Bind(input); err != nil {
+		return c.String(http.StatusBadRequest, "")
+	}
+
 	msg, err := s.db.GetMessage(msgId)
 	if err == mongo.ErrNoDocuments {
 		return c.String(http.StatusNotFound, "")
@@ -276,8 +321,31 @@ func (s *Server) GetPrivateMessage(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "")
 	}
 
-	if !msg.IsPrivate {
+	if !msg.IsPrivate || msg.OnlyOwnerView {
 		return c.String(http.StatusNotFound, "")
+	}
+
+	switch msg.EncodingType {
+	case "password":
+		err = bcrypt.CompareHashAndPassword([]byte(msg.Password), []byte(input.Password))
+		if err != nil {
+			return c.String(http.StatusNotFound, "")
+		}
+	case "internal":
+		decrypted, err := utils.DecryptAES256(config.AESInternalKey, msg.Content)
+		if err != nil {
+			c.Logger().Error(err)
+			return c.String(http.StatusInternalServerError, "")
+		}
+		msg.Content = decrypted
+	case "aes":
+		decrypted, err := utils.DecryptAES256([]byte(input.Password), msg.Content)
+		if err != nil {
+			c.Logger().Warn(err)
+			return c.String(http.StatusNotFound, "")
+		}
+		msg.Content = decrypted
+		msg.Password = ""
 	}
 
 	if msg.IsAnon {
