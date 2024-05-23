@@ -50,4 +50,5 @@ func main() {
 	}
 
 	log.Println("Shutdown is successful")
+	os.Exit(0)
 }
