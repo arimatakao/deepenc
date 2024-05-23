@@ -113,6 +113,10 @@ func (d MainDB) GetLastPublicMessages(skip int) (MessagesOut, error) {
 			{
 				Key:   "is_private",
 				Value: false,
+			},
+			{
+				Key:   "is_one_time",
+				Value: false,
 			}}, opts)
 	if err != nil {
 		return MessagesOut{}, err

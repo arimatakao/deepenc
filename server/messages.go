@@ -184,6 +184,13 @@ func (s *Server) GetPublicMessage(c echo.Context) error {
 		msg.OwnerId = ""
 	}
 
+	if msg.IsOneTime {
+		if err = s.db.DeleteMessage(msgId); err != nil {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, "")
+		}
+	}
+
 	return c.JSON(http.StatusOK, msg)
 }
 
@@ -348,11 +355,18 @@ func (s *Server) GetPrivateMessage(c echo.Context) error {
 		msg.Password = ""
 	}
 
-	if msg.IsAnon {
+	msgResp := toOutputFormat(msg)
+
+	if msgResp.IsAnon {
 		msg.OwnerId = ""
 	}
 
-	msgResp := toOutputFormat(msg)
+	if msgResp.IsOneTime {
+		if err = s.db.DeleteMessage(msgId); err != nil {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, "")
+		}
+	}
 
 	return c.JSON(http.StatusOK, msgResp)
 }
